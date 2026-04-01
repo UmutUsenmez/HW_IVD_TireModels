@@ -132,3 +132,88 @@ for i = 1:length(Fz_kN)
     fprintf('Fz = %d kN  |  C_s = %8.2f [N/ratio]  |  C_alpha = %8.2f [N/rad]\n',Fz_N(i)/1000, C_s(i), C_alpha(i));
 end
 disp('======================================================');
+
+% --- 9. FIALA TIRE MODEL - LATERAL FORCE (Fy) & ALIGNING TORQUE (Mz) ---
+
+% Fiala is a physical model. Calculations use radians (alpha_rad) instead of degrees.
+Fy_fiala = zeros(length(Fz_kN),length(alpha_rad)) ;            % Empty matrix for  Fiala Fy
+Mz_fiala = zeros(length(Fz_kN), length(alpha_rad));            % Empty matrix for  Fiala Mz
+fig_Fy_fiala = figure("Name","Fiala Model - Fy","Color","w");     % graphic window settings
+hold on;grid on;
+fig_Mz_fiala = figure('Name', 'Fiala Model - Mz', 'Color', 'w');  % graphic window settings
+hold on; grid on;
+
+% for loop instead of calculating them separately using empty matrix
+for i = 1:length(Fz_kN)
+    fz_N = Fz_N(i);          
+    C_a = C_alpha(i);                % Tıre (Lateral) Stiffness (N/rad) that we found in the previous section
+    % Calculation of the critical slip angle (tan axis)
+    tan_alpha_crit = (3 * mu_0 * fz_N) / C_a;    % This point is the physical limit where the tire transitions from grip to skidding
+    % Since alpha_rad is a vector, we need to check each angle value individually
+    for j = 1:length(alpha_rad)
+            current_tan_alpha = abs(tan(alpha_rad(j)));
+            % STATUS 1: ELASTIC REGION
+            if current_tan_alpha < tan_alpha_crit % The tire is still able to grip the road; the cubic parabolic formula works
+                H = 1 - (C_a * current_tan_alpha) / (3 * mu_0 * fz_N);
+                Fy_fiala(i, j) = mu_0 * fz_N * (1 - H^3) * sign(alpha_rad(j));
+                Mz_fiala(i, j) = mu_0 * fz_N * Tw * (1 - H) * (H^3) * sign(alpha_rad(j));
+            % STATUS 2: PURE SLIDING REGION    
+            else                                  % The tire burst. It gives the maximum friction force it can exert (mu * Fz).
+                Fy_fiala(i, j) = mu_0 * fz_N * sign(alpha_rad(j)); 
+                Mz_fiala(i, j) = 0;               % The alignment torque resets when the tire bursts.
+            end
+    end
+    % plot of Fiala-Fy & Aligning Torque (Mz)
+    figure(fig_Fy_fiala);
+    plot(alpha_deg, Fy_fiala(i, :), 'LineWidth', 2, 'DisplayName', sprintf('F_z = %d kN', Fz_N(i)/1000));
+    figure(fig_Mz_fiala);
+    plot(alpha_deg, Mz_fiala(i, :), 'LineWidth', 2, 'DisplayName', sprintf('F_z = %d kN', Fz_N(i)/1000));
+end
+% Fiala-Fy & Aligning Torque (Mz) Graphics settings
+figure(fig_Fy_fiala);
+title('Fiala Tire Model - F_y', 'FontWeight', 'bold');
+xlabel('Slip angle [deg]', 'FontWeight', 'bold');
+ylabel('F_y [N]', 'FontWeight', 'bold');
+legend('Location', 'best');
+xlim([-25 25]);
+figure(fig_Mz_fiala);
+title('Fiala Tire Model - M_z', 'FontWeight', 'bold');
+xlabel('Slip angle [deg]', 'FontWeight', 'bold');
+ylabel('M_z [Nm]', 'FontWeight', 'bold');
+legend('Location', 'best');
+xlim([-25 25]);
+
+% --- 10. FIALA TIRE MODEL - LONGITUDINAL FORCE (Fx) ---
+
+% In Fx calculations, we use slip ratio (kappa).
+Fx_fiala = zeros(length(Fz_kN), length(kappa));                      % Empty matrix for  Fiala Fx
+fig_Fx_fiala = figure('Name', 'Fiala Model - Fx', 'Color', 'w');     % graphic window settings
+hold on; grid on;
+% for loop instead of calculating them separately using empty matrix
+for i = 1:length(Fz_kN)
+    fz_N = Fz_N(i);          
+    c_s_val = C_s(i);         % Longitudinal Stiffness (N/ratio) that we found in the previous section
+    % Calculation of the critical slip rate (kappa)
+    kappa_crit = (mu_0 * fz_N) / (2 * c_s_val);   % That physical limit where you transition from holding on to sliding (spinning/locking)
+    % Since kappa is a vector, we need to check each slip value individually
+    for j = 1:length(kappa)
+        S_s = abs(kappa(j));
+        % STATUS 1: ELASTIC REGION (Linear)
+        if S_s <= kappa_crit  % The tire is still gripping the asphalt while accelerating/decelerating
+            Fx_fiala(i, j) = c_s_val * S_s * sign(kappa(j));    % Fx = Cs * Ss
+        % STATUS 2: PURE SLIDING REGION (Parabolic Drop-off)    
+        else                               % Full wheel spin (or brake lock-up). Friction is fixed at its maximum.
+            Fx1 = mu_0 * fz_N;
+            Fx2 = (mu_0 * fz_N)^2 / (4 * S_s * c_s_val);
+            Fx_fiala(i, j) = sign(kappa(j)) * (Fx1 - Fx2);
+        end
+    end
+    % plot of Fiala-Fx
+    plot(kappa * 100, Fx_fiala(i, :), 'LineWidth', 2, 'DisplayName', sprintf('F_z = %d kN', Fz_N(i)/1000));
+end
+% Fiala-Fx Graphics settings
+title('Fiala Tire Model - F_x', 'FontWeight', 'bold');
+xlabel('Slip %', 'FontWeight', 'bold');
+ylabel('F_x [N]', 'FontWeight', 'bold');
+legend('Location', 'best');
+xlim([-100 100]);
