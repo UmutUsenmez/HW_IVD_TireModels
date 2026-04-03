@@ -368,3 +368,22 @@ axis equal;                      % Makes the friction limit look like a perfect 
 xlim([-4500 4500]);
 ylim([-4500 4500]);
 
+% --- 14. SIMULINK DATA PREPARATION ---
+
+% This section prepares the calculated matrices into a format (Fz x Slip) that Simulink Lookup Table blocks can read.
+% 1. Axis Definitions (Breakpoints)
+slip_axis_pct = kappa * 100;
+slip_axis = kappa;         % Longitudinal slip axis (-1 to 1)
+alpha_axis = alpha_deg;    % Lateral slip angle axis (-25 to 25)
+fz_axis = Fz_N;            % Vertical load axis (2000, 4000, 6000, 8000)
+% 2. Magic Formula Data
+Fx_magic_sim = Fx_magic';    
+Fy_magic_sim = Fy_magic';    
+Mz_magic_sim = Mz_magic';
+% 3. Fiala Data
+Fx_fiala_sim = Fx_fiala';
+Fy_fiala_sim = Fy_fiala';
+Mz_fiala_sim = Mz_fiala';
+% 4. Dugoff Data
+Fx_dugoff_sim = Fx_dugoff';
+Fy_dugoff_sim = Fy_dugoff';
