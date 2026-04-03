@@ -209,6 +209,7 @@ for i = 1:length(Fz_kN)
         end
     end
     % plot of Fiala-Fx
+    figure(fig_Fx_fiala);
     plot(kappa * 100, Fx_fiala(i, :), 'LineWidth', 2, 'DisplayName', sprintf('F_z = %d kN', Fz_N(i)/1000));
 end
 % Fiala-Fx Graphics settings
@@ -217,3 +218,153 @@ xlabel('Slip %', 'FontWeight', 'bold');
 ylabel('F_x [N]', 'FontWeight', 'bold');
 legend('Location', 'best');
 xlim([-100 100]);
+
+% --- 11. DUGOFF TIRE MODEL - LATERAL FORCE (Fy) ---
+
+Fy_dugoff = zeros(length(Fz_kN), length(alpha_rad));                 % Empty matrix for  Dugoff Fy
+fig_Fy_dugoff = figure('Name', 'Dugoff Model - Fy', 'Color', 'w');   % graphic window settings
+hold on; grid on;
+% for loop instead of calculating them separately using empty matrix
+for i = 1:length(Fz_kN)
+    fz_N = Fz_N(i);
+    C_a = C_alpha(i);
+    c_s_val = C_s(i);           % Longitudinal Stiffness (N/ratio)
+    % Since alpha_rad is a vector, we need to check each angle value individually
+    for j = 1:length(alpha_rad)
+        alpha = alpha_rad(j);
+        s = 0;                  % slip (s) is zero because no accelerator/brake is applied.
+        % 1. Calculation of Sliding Speed ​​(Vs) and Dynamic Friction (mu)
+        V_s = U * sqrt(s^2 + tan(alpha)^2);
+        mu = mu_0 * (1 - A_s * V_s);
+        % 2. Lambda (Critical Limit) Calculation
+        den = 2 * sqrt((c_s_val * s)^2 + (C_a * tan(alpha))^2); 
+        % If the denominator is zero (at the origin), it shouldn't go to infinity:
+        if den == 0
+            lambda = 1000; % If the denominator is 0, it means the tire has 100% grip.
+        else
+            lambda = (mu * fz_N * (1 + s)) / den;
+        end
+        % 3. Piecewise f(lambda) Function
+        if lambda < 1
+            f_lambda = (2 - lambda) * lambda;
+        else
+            f_lambda = 1;
+        end
+        % 4. Final Dugoff Lateral Force (Fy) Formula
+        Fy_dugoff(i, j) = C_a * (tan(alpha) / (1 + s)) * f_lambda;
+    end
+    % Plot of Dugoff-Fy 
+    figure(fig_Fy_dugoff);
+    plot(alpha_deg, Fy_dugoff(i, :), 'LineWidth', 2, 'DisplayName', sprintf('F_z = %d kN', Fz_N(i)/1000));
+end
+% Dugoff-Fy Graphics settings
+title('Dugoff Tire Model - F_y', 'FontWeight', 'bold');
+xlabel('Slip angle [deg]', 'FontWeight', 'bold');
+ylabel('F_y [N]', 'FontWeight', 'bold');
+legend('Location', 'best');
+xlim([-25 25]);
+
+% --- 12. DUGOFF TIRE MODEL - LONGITUDINAL FORCE (Fx) ---
+
+Fx_dugoff = zeros(length(Fz_kN), length(kappa));                    % Empty matrix for  Dugoff Fx
+fig_Fx_dugoff = figure('Name', 'Dugoff Model - Fx', 'Color', 'w');  % graphic window settings
+hold on; grid on;
+% for loop instead of calculating them separately using empty matrix
+for i = 1:length(Fz_kN)
+    fz_N = Fz_N(i);
+    c_s_val = C_s(i);
+    % Since kappa is a vector, we need to check each slip value individually
+    for j = 1:length(kappa)
+        s = kappa(j);
+        s_mag = abs(s);
+        % 1. Calculation of Sliding Speed ​​(Vs) and Dynamic Friction (mu)
+        V_s = U * s_mag;
+        mu = mu_0 * (1 - A_s * V_s);
+        % 2. Lambda (Critical Limit) Calculation
+        den = 2 * c_s_val * s_mag;
+        % If the denominator is zero (at the origin), it shouldn't go to infinity:
+        if den == 0
+            lambda = 1000;         % If the denominator is 0, it means the tire has 100% grip.
+        else
+            lambda = (mu * fz_N * (1 + s_mag)) / den;
+        end
+         % 3. Piecewise f(lambda) Function
+        if lambda < 1
+            f_lambda = (2 - lambda) * lambda;
+        else
+            f_lambda = 1;
+        end
+        % 4. Final Dugoff Longitudinal Force (Fx) Formula
+        Fx_dugoff(i, j) = c_s_val * (s / (1 + s_mag)) * f_lambda;
+    end
+    % Plot of Dugoff-Fx
+    figure(fig_Fx_dugoff);
+    plot(kappa * 100, Fx_dugoff(i, :), 'LineWidth', 2, 'DisplayName', sprintf('F_z = %d kN', Fz_N(i)/1000));
+end
+% Dugoff-Fx Graphics settings
+title('Dugoff Tire Model - F_x', 'FontWeight', 'bold');
+xlabel('Slip %', 'FontWeight', 'bold');
+ylabel('F_x [N]', 'FontWeight', 'bold');
+legend('Location', 'best');
+xlim([-100 100]);
+
+% --- 13. TIRE FORCE ELLIPSE (FRICTION ELLIPSE / CARPET PLOT) ---
+
+% Based on Dugoff Tire Model with constant vertical load Fz = 4000 N
+Fz_ellipse = 4000;                        % Constant vertical load [N]
+alpha_ellipse_deg = [0, 2, 5, 10, 20];    % Given constant slip angles [deg]
+alpha_ellipse_rad = deg2rad(alpha_ellipse_deg);   % conversion from degrees to radians
+% We already have the stiffness values for Fz = 4000 N 
+% It is the 2nd index in our Fz array (2000, 4000, 6000, 8000)
+Cs_ellipse = C_s(2); 
+Ca_ellipse = C_alpha(2);
+fig_Ellipse = figure('Name', 'Tire Force Ellipse (Dugoff)', 'Color', 'w');  % graphic window settings
+hold on; grid on;
+% Friction Circle Boundary (Theoretical Limit: mu * Fz)
+F_max = mu_0 * Fz_ellipse;
+theta = linspace(0, 2*pi, 100);
+plot(F_max * sin(theta), F_max * cos(theta), 'k--', 'LineWidth', 2, 'DisplayName', 'Friction Limit (\mu F_z)');
+set(gca, 'ColorOrderIndex', 1);
+% Loop for each constant slip angle
+for i = 1:length(alpha_ellipse_rad)
+    alpha = alpha_ellipse_rad(i);
+    Fx_combined = zeros(1, length(kappa));
+    Fy_combined = zeros(1, length(kappa));
+     % Since kappa is a vector, we need to check each slip value individually
+     for j = 1:length(kappa)
+        s = kappa(j);
+        % 1. Calculation of Sliding Speed ​​(Vs) and Dynamic Friction (mu)
+        V_s = U * sqrt(s^2 + tan(alpha)^2);
+        mu = mu_0 * (1 - A_s * V_s);
+        % 2. Lambda (Critical Limit) Calculation
+        den = 2 * sqrt((Cs_ellipse * s)^2 + (Ca_ellipse * tan(alpha))^2);
+        % If the denominator is zero (at the origin), it shouldn't go to infinity:
+        if den == 0
+            lambda = 1000;               % If the denominator is 0, it means the tire has 100% grip.
+        else
+            lambda = (mu * Fz_ellipse * (1 + abs(s))) / den;
+        end
+        % 3. Piecewise f(lambda) Function
+        if lambda < 1
+            f_lambda = (2 - lambda) * lambda;
+        else
+            f_lambda = 1;
+        end
+        % Combined slip forces calculation
+        Fx_combined(j) = Cs_ellipse * (s / (1 + abs(s))) * f_lambda;
+        Fy_combined(j) = Ca_ellipse * (tan(alpha) / (1 + abs(s))) * f_lambda;
+     end
+     % Plot Fy vs Fx for the current constant slip angle
+     % (Lateral force on X-axis, Longitudinal force on Y-axis is standard for Carpet Plots)
+     figure(fig_Ellipse);
+     plot(Fy_combined, Fx_combined, 'LineWidth', 2, 'DisplayName', sprintf('\\alpha = %d^o', alpha_ellipse_deg(i)));
+end
+% Ellipse Graphics settings
+title('Tire Force Ellipse (Carpet Plot) - Dugoff Model', 'FontWeight', 'bold');
+xlabel('Lateral Force, F_y [N]', 'FontWeight', 'bold');
+ylabel('Longitudinal Force, F_x [N]', 'FontWeight', 'bold');
+legend('Location', 'eastoutside');
+axis equal;                      % Makes the friction limit look like a perfect circle.
+xlim([-4500 4500]);
+ylim([-4500 4500]);
+
