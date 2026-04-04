@@ -111,6 +111,7 @@ legend('Location', 'best');
 xlim([-25 25]);
 
 % --- 8. TIRE STIFFNESS CALCULATIONS (Cs and C_alpha) ---
+
 % Stiffness/Resistance values ​​required for Fiala and Dugoff models
 % Derived from the slope of the Magic Formula at the origin (B*C*D)
 
@@ -387,3 +388,33 @@ Mz_fiala_sim = Mz_fiala';
 % 4. Dugoff Data
 Fx_dugoff_sim = Fx_dugoff';
 Fy_dugoff_sim = Fy_dugoff';
+
+% --- 15. SIMULINK RESULTS (LOOKUP TABLE BASED PLOTS) ---
+
+% Comparison of data pulled from Simulink Workspace for Fz = 5000 N
+% --Lookup Table: Longitudinal Force (Fx) Comparison--
+fig_Sim_Fx = figure('Name', 'Simulink Comparison - Fx', 'Color', 'w');
+hold on; grid on;
+% fxfy_m(:,1) -> Magic Fx output
+plot(slip_m, fxfy_m(:,1), 'LineWidth', 2, 'DisplayName', 'Magic, F_z = 5 kN');
+plot(slip_d, fxfy_d(:,1), 'LineWidth', 2, 'DisplayName', 'Dugoff, F_z = 5 kN');
+plot(slip_f, fxfy_f(:,1), 'LineWidth', 2, 'DisplayName', 'Fiala, F_z = 5 kN');
+% Graphic settings
+title('Lookup Table Based Plot - F_x', 'FontWeight', 'bold');
+xlabel('Slip', 'FontWeight', 'bold'); 
+ylabel('F_x [N]', 'FontWeight', 'bold');
+legend('Location', 'best');
+xlim([-1 1]);
+% --Lookup Table: Lateral Force (Fy) Comparison--
+fig_Sim_Fy = figure('Name', 'Simulink Comparison - Fy', 'Color', 'w');
+hold on; grid on;
+% fxfy_m(:,2) -> Magic Fy output
+plot(alpha_m, fxfy_m(:,2), 'LineWidth', 2, 'DisplayName', 'Magic, F_z = 5 kN');
+plot(alpha_d, fxfy_d(:,2), 'LineWidth', 2, 'DisplayName', 'Dugoff, F_z = 5 kN');
+plot(alpha_f, fxfy_f(:,2), 'LineWidth', 2, 'DisplayName', 'Fiala, F_z = 5 kN');
+% Graphic settings
+title('Lookup Table Based Plot - F_y', 'FontWeight', 'bold');
+xlabel('Slip angle [deg]', 'FontWeight', 'bold');
+ylabel('F_y [N]', 'FontWeight', 'bold');
+legend('Location', 'best');
+xlim([-25 25]);
